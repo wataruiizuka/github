@@ -1,0 +1,5 @@
+credentials_file = "/Users/celesiizuka/Desktop/terraform-gcp-dbt/.secret/casa-task-sql-041e0099e7ec.json"
+project_name     = "casa-task-sql"
+project_id       = "casa-task-sql"
+org_id           = "your-org-id"
+service_account_id = "terraform-gcp-dbt-casa"
