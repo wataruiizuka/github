@@ -27,12 +27,12 @@ resource "google_service_account" "service_account" {
 }
 
 resource "google_project_iam_binding" "binding" {
-  project = "google_project_iam_binding"
+  project = "casa-task-sql"
   role    = "roles/bigquery.dataEditor"
 
   members = [
-    "serviceAccount:${google_service_account.service_account.email}",
-  ]
+  "user:momoko.kawano@casa-llc.com",
+]
 }
 
 resource "google_bigquery_dataset" "tf_gcp_dbt_dataset" {
