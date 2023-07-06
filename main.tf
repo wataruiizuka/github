@@ -27,7 +27,7 @@ resource "google_service_account" "service_account" {
 }
 
 resource "google_project_iam_binding" "binding" {
-  project = google_project.project.project_id
+  project = "google_project_iam_binding"
   role    = "roles/bigquery.dataEditor"
 
   members = [
@@ -60,3 +60,23 @@ resource "google_bigquery_table" "tf_gcp_dbt_table" {
 ]
 EOF
 }
+
+resource "google_bigquery_table" "momoko_table" {
+  dataset_id = google_bigquery_dataset.tf_gcp_dbt_dataset.dataset_id
+  table_id   = "momoko_table"
+
+  time_partitioning {
+    type = "DAY"
+  }
+
+  schema = <<EOF
+[
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  }
+]
+EOF
+}
+
