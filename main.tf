@@ -133,6 +133,41 @@ resource "google_storage_transfer_job" "transfer_job" {
   }
 }
 
+#google container clusterの設定
+resource "google_container_cluster" "my_cluster" {
+  name               = "kamiyama-gke-cluster"
+  location           = "US"
+  initial_node_count = 3
+  min_master_version = "1.18.16-gke.302"
+
+  node_config {
+    machine_type = "n1-standard-2"
+    disk_size_gb = 100
+
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/compute",
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring"
+    ]
+  }
+}
+
+#google container node poolの設定
+resource "google_container_node_pool" "my_node_pool" {
+  name       = "kamiyama-node-pool"
+  cluster    = google_container_cluster.my_cluster.name
+  location   = google_container_cluster.my_cluster.location
+  node_count = 3
+
+  node_config {
+    machine_type = "n1-standard-2"
+    disk_size_gb = 100
+
+    # ノードの設定など...
+  }
+}
+
 resource "google_storage_notification" "notification" {
   bucket        = google_storage_bucket.bucket.name
   payload_format = "JSON_API_V1"
