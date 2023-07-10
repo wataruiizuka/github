@@ -168,6 +168,22 @@ resource "google_container_node_pool" "my_node_pool" {
   }
 }
 
+#google_sql_database
+resource "google_sql_database" "my_database" {
+  name     = "kamiyama-database"
+  instance = "kamiyama-instance"
+}
+
+#google_sql_instance(エラー修正中)
+resource "google_sql_database_instance" "my_instance" {
+  name             = "kamiyama-instance"
+  database_version = "MYSQL_5_7"
+
+  settings {
+    tier = "db-n1-standard-1"
+  }
+}
+
 resource "google_storage_notification" "notification" {
   bucket        = google_storage_bucket.bucket.name
   payload_format = "JSON_API_V1"
