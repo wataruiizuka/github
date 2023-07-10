@@ -42,6 +42,34 @@ resource "google_project_iam_binding" "binding" {
   ]
 }
 
+## Google Pub/Subのトピックリソースを作成
+resource "google_pubsub_topic" "my_topic" {
+  name = "terraform-topic"
+}
+
+# Google Pub/Subのサブスクリプションリソースを作成
+resource "google_pubsub_subscription" "my_subscription" {
+  name  = "terraform-subscription"
+  topic = google_pubsub_topic.my_topic.name
+}
+
+# Google Cloud DNSのManaged Zoneリソースを作成
+resource "google_dns_managed_zone" "my_zone" {
+  name        = "terraform-zone"
+  dns_name    = "terraform.example.com."  # ドメイン名を指定
+  description = "terraform DNS Zone" #任意の説明
+}
+
+# Google Cloud DNSのRecord Setリソースを作成
+resource "google_dns_record_set" "my_record_set" {
+  name    = "terraform.example.com."  # レコード名を指定
+  type    = "A"                 # レコードタイプを指定
+  ttl     = 300                 # TTL（Time To Live）を指定
+  rrdatas = ["192.0.2.1"]       # レコードデータを指定
+
+  managed_zone = google_dns_managed_zone.my_zone.name
+}
+
 # データセットを作成
 resource "google_bigquery_dataset" "tf_gcp_dbt_dataset" {
   dataset_id                  = "tf_gcp_dbt_dataset"
@@ -147,7 +175,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   schedule               = "every day 06:00"
   destination_dataset_id = google_bigquery_dataset.tago_dataset_schedule.dataset_id
   params = {
-    destination_table_name_template = "${google_bigquery_table.tago_table_dwh_schedule.dataset_id}" 
+    destination_table_name_template = "tago_table_dwh_schedule" 
     write_disposition               = "WRITE_APPEND"
     query                           = "SELECT DAY, sample1 FROM `casa-task-sql.tago2_gcp_dbt_dataset.tago2_gcp_dbt_table`"
 
