@@ -369,3 +369,35 @@ resource "google_bigquery_data_transfer_config" "query_config" {
 
   }
 }
+
+resource "google_project_iam_member" "member" {
+  project = "casa-task-sql"
+  role    = "roles/viewer"
+  member  = "user:momoko.kawano@casa-llc.com"
+}
+
+data "google_iam_policy" "policy" {
+  binding {
+    role = "roles/storage.objectViewer"
+
+    members = [
+      "user:momoko.kawano@casa-llc.com",
+    ]
+  }
+}
+
+resource "google_project_iam_policy" "project" {
+  project     = "casa-task-sql"
+  policy_data = data.google_iam_policy.policy.policy_data
+}
+
+
+resource "google_service_account" "account" {
+  account_id   = "my-service-account"
+  display_name = "My Service Account"
+  project      = "your-project-id"
+}
+
+resource "google_service_account_key" "key" {
+  service_account_id = google_service_account.account.name
+}
