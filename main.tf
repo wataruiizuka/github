@@ -24,6 +24,80 @@ resource "google_project_service" "cloud_storage" {
   service = "storage.googleapis.com"
 }
 
+#ネットワークの作成
+resource "google_compute_network" "example_network" {
+  name                    = "kamiyama-network"
+  auto_create_subnetworks = false
+}
+
+#サブネットワークの作成
+resource "google_compute_subnetwork" "example_subnetwork" {
+  name          = "kamiyama-subnetwork"
+  ip_cidr_range = "10.0.0.0/24"
+  network       = "projects/casa-task-sql/global/networks/kamiyama-network"
+  region        = "us-central1"
+}
+
+#インスタンスの作成
+resource "google_compute_instance" "example_instance" {
+  name         = "example-instance"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-os-cloud/ubuntu-2004-lts"
+    }
+  }
+  
+  network_interface {
+    network   = "projects/casa-task-sql/global/networks/kamiyama-network"
+    subnetwork = "projects/casa-task-sql/regions/us-central1/subnetworks/kamiyama-subnetwork"
+  }
+}
+
+#ディスクの作成
+resource "google_compute_disk" "example_disk" {
+  name  = "kamiyama-disk"
+  size  = 100
+  type  = "pd-standard"
+  zone  = "us-central1-a"
+}
+
+#ファイアウォールの作成
+resource "google_compute_firewall" "example_firewall" {
+  name    = "kamiyama-firewall"
+  network = "projects/casa-task-sql/global/networks/kamiyama-network"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+}
+
+#ルートの作成
+resource "google_compute_route" "example_route" {
+  name        = "kamiyama-route"
+  network     = "projects/casa-task-sql/global/networks/kamiyama-network"
+  dest_range  = "10.0.0.0/16"
+  next_hop_ip = google_compute_instance.example_instance.network_interface[0].network_ip
+}
+
+#グローバルアドレスの作成
+resource "google_compute_global_address" "example_address" {
+  name = "kamiyama-address"
+}
+
+#SSL証明書の作成
+resource "google_compute_ssl_certificate" "example_certificate" {
+  name        = "kamiyama-certificate"
+  description = "Example SSL Certificate"
+  private_key = file("path/to/private/key.pem")
+  certificate = file("path/to/certificate.pem")
+}
+
 #Bucketの作成と設定
 resource "google_storage_bucket" "bucket" {
   name     = "kamiyama-terraform"
@@ -138,7 +212,7 @@ resource "google_storage_transfer_job" "example_transfer_job" {
   }
 }
 
-#google container clusterの設定
+#コンテナ クラスターの作成
 resource "google_container_cluster" "my_cluster" {
   name               = "kamiyama-gke-cluster"
   location           = "US"
@@ -158,7 +232,7 @@ resource "google_container_cluster" "my_cluster" {
   }
 }
 
-#google container node poolの設定
+#コンテナ ノード プールの作成
 resource "google_container_node_pool" "my_node_pool" {
   name       = "kamiyama-node-pool"
   cluster    = google_container_cluster.my_cluster.name
@@ -173,14 +247,14 @@ resource "google_container_node_pool" "my_node_pool" {
   }
 }
 
-#google_sql_database
+#データベースの作成
 resource "google_sql_database" "my_database" {
   name     = "kamiyama-database"
   instance = "kamiyama-instance"
 }
 
 
-#google_sql_instanceの設定
+#データベースインスタンスの作成
 resource "google_sql_database_instance" "my_instance" {
   name             = "kamiyama-instance"
   database_version = "MYSQL_5_7"
@@ -190,7 +264,7 @@ resource "google_sql_database_instance" "my_instance" {
   }
 }
 
-#google_sql_userの設定
+#データベースユーザーの作成
 resource "google_sql_user" "example_user" {
   name     = "test-kamiyama"
   instance = google_sql_database_instance.my_instance.id
