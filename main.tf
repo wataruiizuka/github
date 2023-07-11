@@ -100,16 +100,17 @@ resource "google_storage_object_acl" "object_acl" {
 }
 
 #Transfer Jobの作成と管理** (GCS to GCS の例)
-resource "google_storage_transfer_job" "transfer_job" {
-  description = "test-transfer-job"
-  project     = "casa-task-sql"
+resource "google_storage_transfer_job" "example_transfer_job" {
+  description = "Transfer job for GCS to GCS"
+
+  project = "casa-task-sql"
 
   transfer_spec {
     gcs_data_source {
       bucket_name = "kamiyama-terraform"
     }
     gcs_data_sink {
-      bucket_name = "tf_gcp_dbt_bucket"
+      bucket_name = "sample-transfer"
     }
     object_conditions {
       max_time_elapsed_since_last_modification = "600s"
@@ -178,7 +179,8 @@ resource "google_sql_database" "my_database" {
   instance = "kamiyama-instance"
 }
 
-#google_sql_instance(エラー修正中)
+
+#google_sql_instanceの設定
 resource "google_sql_database_instance" "my_instance" {
   name             = "kamiyama-instance"
   database_version = "MYSQL_5_7"
@@ -186,6 +188,13 @@ resource "google_sql_database_instance" "my_instance" {
   settings {
     tier = "db-n1-standard-1"
   }
+}
+
+#google_sql_userの設定
+resource "google_sql_user" "example_user" {
+  name     = "test-kamiyama"
+  instance = google_sql_database_instance.my_instance.id
+  password = "20230711"
 }
 
 resource "google_storage_notification" "notification" {
