@@ -91,12 +91,12 @@ resource "google_compute_global_address" "example_address" {
 }
 
 #SSL証明書の作成
-resource "google_compute_ssl_certificate" "example_certificate" {
-  name        = "kamiyama-certificate"
-  description = "Example SSL Certificate"
-  private_key = file("path/to/private/key.pem")
-  certificate = file("path/to/certificate.pem")
-}
+#resource "google_compute_ssl_certificate" "example_certificate" {
+#  name        = "kamiyama-certificate"
+#  description = "Example SSL Certificate"
+#  private_key = file("path/to/private/key.pem")
+#  certificate = file("path/to/certificate.pem")
+#}
 
 #Bucketの作成と設定
 resource "google_storage_bucket" "bucket" {
@@ -345,6 +345,20 @@ resource "google_spanner_database" "my_database" {
   name     = "terraform-database"
   instance = google_spanner_instance.my_instance.name
 }
+
+# Google Cloud FunctionsのFunctionリソースを作成
+resource "google_cloudfunctions_function" "my_function" {
+  name                  = "terraform-function"
+  description           = "terraform Cloud Function"
+  runtime               = "nodejs16"
+  available_memory_mb   = 256
+  timeout               = 60
+  entry_point           = "helloHttp"  
+  source_archive_bucket = "terraform_tago"
+  source_archive_object = "function-source.zip"
+  trigger_http          = true
+}
+
 
 # データセットを作成
 resource "google_bigquery_dataset" "tf_gcp_dbt_dataset" {
