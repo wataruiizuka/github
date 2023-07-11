@@ -212,13 +212,13 @@ resource "google_service_account" "service_account" {
 
 # IAMバインディングを作成
 resource "google_project_iam_binding" "binding" {
-  project = google_project.project.project_id
+  project = "casa-task-sql"
   role    = "roles/bigquery.dataEditor"
 
 # バインディングに含まれるメンバーを指定
   members = [
-    "serviceAccount:${google_service_account.service_account.email}",
-  ]
+  "user:momoko.kawano@casa-llc.com",
+]
 }
 
 ## Google Pub/Subのトピックリソースを作成
@@ -335,7 +335,7 @@ resource "google_bigquery_table" "tago_table_dwh_schedule" {
     type = "DAY"
   }
 
-  # テーブルのスキーマを指定
+# テーブルのスキーマを指定
   schema = <<EOF
 [
   {"name": "DAY", "type": "DATE", "mode": "NULLABLE"},
