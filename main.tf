@@ -332,6 +332,20 @@ resource "google_dns_record_set" "my_record_set" {
   managed_zone = google_dns_managed_zone.my_zone.name
 }
 
+# Google Cloud SpannerのInstanceリソースを作成
+resource "google_spanner_instance" "my_instance" {
+  name        = "terraform-instance"
+  config      = "regional-us-central1"
+  num_nodes   = 1
+  display_name = "terraform-sample"
+}
+
+# Google Cloud SpannerのDatabaseリソースを作成
+resource "google_spanner_database" "my_database" {
+  name     = "terraform-database"
+  instance = google_spanner_instance.my_instance.name
+}
+
 # データセットを作成
 resource "google_bigquery_dataset" "tf_gcp_dbt_dataset" {
   dataset_id                  = "tf_gcp_dbt_dataset"
