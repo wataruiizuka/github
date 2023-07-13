@@ -3,13 +3,28 @@ provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project_name
   region      = "us-central1"
+  scopes = [  //OAuth 2.0スコープのリスト
+  "https://www.googleapis.com/auth/cloud-platform",
+  "https://www.googleapis.com/auth/compute",
+  "https://www.googleapis.com/auth/cloud-platform.read-only",
+  "https://www.googleapis.com/auth/cloud-platform.googleapis.com",
+  "https://www.googleapis.com/auth/bigquery",
+  "https://www.googleapis.com/auth/pubsub"
+]
+  billing_project       = "casa-task-sql" //APIリクエストの課金先(課金プロジェクト指定)
+
 }
 
 # 新しいGoogle Cloudプロジェクトを作成
 resource "google_project" "project" {
-  name       = var.project_name
-  project_id = var.project_id
-  org_id     = var.org_id
+  name              = var.project_name
+  project_id        = var.project_id
+  org_id            = var.org_id
+  auto_create_network = false
+  labels = {
+    environment = "production"  // プロジェクトに"environment"というキーのラベルを追加し、値として"production"を設定
+    team        = "engineering" // プロジェクトに"team"というキーのラベルを追加し、値として"engineering"を設定
+  }
 }
 
 # プロジェクトに対してBigQueryサービスを有効化
@@ -43,16 +58,26 @@ resource "google_compute_instance" "example_instance" {
   name         = "example-instance"
   machine_type = "n1-standard-1"
   zone         = "us-central1-a"
-  
+
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2004-lts"
     }
   }
-  
+
   network_interface {
     network   = "projects/casa-task-sql/global/networks/kamiyama-network"
     subnetwork = "projects/casa-task-sql/regions/us-central1/subnetworks/kamiyama-subnetwork"
+  }
+
+  can_ip_forward = true //インスタンスがIPフォワーディングを許可するかどうかを指定
+
+  deletion_protection = true //インスタンスが削除保護されているかどうかを指定
+
+  shielded_instance_config { //インスタンスに対するShielded VMの設定を指定
+    enable_secure_boot      = true
+    enable_vtpm             = true
+    enable_integrity_monitoring = true
   }
 }
 
@@ -83,23 +108,51 @@ resource "google_compute_route" "example_route" {
   network     = "projects/casa-task-sql/global/networks/kamiyama-network"
   dest_range  = "10.0.0.0/16"
   next_hop_ip = google_compute_instance.example_instance.network_interface[0].network_ip
+
+  priority    = 100 //ルートの優先度を指定
+  description = "Custom route for Kamiyama network" //ルートの説明や目的を記述するテキストを指定
+  tags        = ["web", "frontend"] //ルートに関連付けるネットワークタグを指定
+
+  next_hop_instance = google_compute_instance.example_instance.self_link //ルートの次のホップとしてインスタンスを指定
 }
 
 #グローバルアドレスの作成
 resource "google_compute_global_address" "example_address" {
-  name = "kamiyama-address"
+  name        = "kamiyama-address"
+  description = "Global address for Kamiyama network" //グローバルアドレスの説明や目的を記述するテキストを指定
+  address_type = "EXTERNAL" //グローバルアドレスのタイプを指定
+  purpose     = "GCE_ENDPOINT" //グローバルアドレスの目的を指定
 }
 
 #Bucketの作成と設定
 resource "google_storage_bucket" "bucket" {
-  name     = "kamiyama-terraform"
-  location = "US"
-  storage_class = "STANDARD"
-  force_destroy = true
+  name           = "kamiyama-terraform"
+  location       = "US"
+  storage_class  = "STANDARD"
+  force_destroy  = true
 
-#バージョニング
+  #バージョニング
   versioning {
     enabled = true
+  }
+
+  logging {  //アクセスログの保存先とプレフィックスを指定
+    log_bucket       = "your-log-bucket"
+    log_object_prefix = "logs/"
+  }
+
+  website { //ブロックを追加して静的ウェブサイトホスティングの設定を指定
+    main_page_suffix = "index.html"
+    not_found_page   = "404.html"
+  }
+
+  lifecycle_rule { //ファイルのライフサイクルルールを指定
+    action {
+      type = "Delete"
+    }
+    condition {
+      age = 30
+    }
   }
 }
 
@@ -182,6 +235,11 @@ resource "google_storage_transfer_job" "example_transfer_job" {
       max_time_elapsed_since_last_modification = "600s"
       min_time_elapsed_since_last_modification = "60s"
     }
+
+    transfer_options {
+      delete_objects_from_source_after_transfer = true //転送後にソースからオブジェクトを削除するようにな
+      overwrite_objects_already_existing_in_sink = false //データを転送する際、宛先のバケットに既に存在する同じ名前のオブジェクトがある場合、それらのオブジェクトを上書きすることはない
+    }
   }
 
   schedule {
@@ -243,8 +301,9 @@ resource "google_container_node_pool" "my_node_pool" {
 resource "google_sql_database" "my_database" {
   name     = "kamiyama-database"
   instance = "kamiyama-instance"
+  charset   = "utf8"  // 文字セットの設定
+  collation = "utf8_general_ci" // 照合順序の設定
 }
-
 
 #データベースインスタンスの作成
 resource "google_sql_database_instance" "my_instance" {
@@ -290,10 +349,17 @@ resource "google_project_iam_binding" "binding" {
   project = "casa-task-sql"
   role    = "roles/bigquery.dataEditor"
 
-# バインディングに含まれるメンバーを指定
+  # バインディングに含まれるメンバーを指定
   members = [
-  "user:momoko.kawano@casa-llc.com",
-]
+    "user:momoko.kawano@casa-llc.com",
+  ]
+
+  condition { //バインディングを有効化する条件を設定
+  #request-timeという条件タイトルと、特定の日付までのリクエストのみバインディングを有効化する条件式を指定
+    title       = "sample-time"
+    description = "Request time condition"
+    expression  = "request.time < timestamp(\"2024-01-01T00:00:00Z\")"
+  }
 }
 
 ## Google Pub/Subのトピックリソースを作成
@@ -312,6 +378,7 @@ resource "google_dns_managed_zone" "my_zone" {
   name        = "terraform-zone"
   dns_name    = "terraform.example.com."  # ドメイン名を指定
   description = "terraform DNS Zone" #任意の説明
+  visibility  = "public"             # 可視性を指定
 }
 
 # Google Cloud DNSのRecord Setリソースを作成
@@ -322,6 +389,8 @@ resource "google_dns_record_set" "my_record_set" {
   rrdatas = ["192.0.2.1"]       # レコードデータを指定
 
   managed_zone = google_dns_managed_zone.my_zone.name
+
+  project = "casa-task-sql"     # プロジェクトIDを指定
 }
 
 # Google Cloud SpannerのInstanceリソースを作成
@@ -572,6 +641,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   }
 }
 
+#IAM メンバーを追加
 resource "google_project_iam_member" "member" {
   project = "casa-task-sql"
   role    = "roles/viewer"
@@ -588,11 +658,11 @@ data "google_iam_policy" "policy" {
   }
 }
 
+#IAMポリシーの設定
 resource "google_project_iam_policy" "project" {
   project     = "casa-task-sql"
   policy_data = data.google_iam_policy.policy.policy_data
 }
-
 
 resource "google_service_account" "account" {
   account_id   = "my-service-account"
