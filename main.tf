@@ -3,6 +3,9 @@ provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project_name
   region      = "us-central1"
+  zone        = "us-central1" // リソースを作成するGCPゾーン(GCPのゾーン指定)
+  user_project_override    = true // リソースを作成するGCPゾーン(GCPのゾーン指定)
+  request_timeout          = "10m" // 全リクエストのタイムアウト(リクエストのタイムアウト)
 }
 
 # 新しいGoogle Cloudプロジェクトを作成
@@ -28,6 +31,9 @@ resource "google_project_service" "cloud_storage" {
 resource "google_compute_network" "example_network" {
   name                    = "kamiyama-network"
   auto_create_subnetworks = false
+  description             = "This network is for test." // ネットワークに関する説明を追加
+  routing_mode            = "REGIONAL" // ルーティングモードを設定
+  project                 = "casa-task-sql" // プロジェクトを指定
 }
 
 #サブネットワークの作成
@@ -36,6 +42,7 @@ resource "google_compute_subnetwork" "example_subnetwork" {
   ip_cidr_range = "10.0.0.0/24"
   network       = "projects/casa-task-sql/global/networks/kamiyama-network"
   region        = "us-central1"
+  description   = "This subnetwork is for test." // サブネットワークに関する説明
 }
 
 #インスタンスの作成
@@ -62,6 +69,8 @@ resource "google_compute_disk" "example_disk" {
   size  = 100
   type  = "pd-standard"
   zone  = "us-central1-a"
+  description = "This disk is for test." // ディスクに関する説明
+  image       = "projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20210603" // ディスクにイメージを指定
 }
 
 #ファイアウォールの作成
@@ -75,6 +84,7 @@ resource "google_compute_firewall" "example_firewall" {
   }
 
   source_ranges = ["0.0.0.0/0"]
+  target_service_accounts   = ["terraform-gcp-dbt-casa@casa-task-sql.iam.gserviceaccount.com"] // サービスアカウントを指定
 }
 
 #ルートの作成
@@ -94,8 +104,8 @@ resource "google_compute_global_address" "example_address" {
 resource "google_compute_ssl_certificate" "example_certificate" {
   name        = "kamiyama-certificate"
   description = "Example SSL Certificate"
-  private_key = file("path/to/private/key.pem")
-  certificate = file("path/to/certificate.pem")
+  private_key = file("/Users/kamiyamaayane/sample_csr.pem")
+  certificate = file("/Users/kamiyamaayane/sample_key.pem")
 }
 
 #Bucketの作成と設定
@@ -140,6 +150,12 @@ resource "google_storage_bucket_iam_member" "member" {
   bucket = google_storage_bucket.bucket.name
   role   = "roles/storage.objectViewer"
   member = "user:ayane.kamiyama@casa-llc.com"
+
+  condition {
+    title       = "request-time"
+    description = "Access granted only during office hours"
+    expression  = "request.time < timestamp(\"2023-07-31T18:00:00Z\") && request.time > timestamp(\"2023-07-31T09:00:00Z\")"
+  } // メンバーのアクセスを制御する条件を指定
 }
 
 resource "google_storage_bucket_iam_policy" "bucket_policy" {
@@ -161,6 +177,8 @@ resource "google_storage_bucket_object" "object" {
   name   = "test"
   bucket = google_storage_bucket.bucket.name
   source = "/Users/kamiyamaayane/Downloads/test.csv"
+  content_type  = "text/csv" // コンテンツタイプを指定
+  storage_class   = "COLDLINE" // ストレージクラスを指定
 }
 
 #ObjectのACL設定
@@ -219,6 +237,8 @@ resource "google_container_cluster" "my_cluster" {
   initial_node_count = 3
   min_master_version = "1.18.16-gke.302"
 
+  network            = "projects/casa-task-sql/global/networks/kamiyama-network" // クラスタが使用するVPCネットワークを指定
+
   node_config {
     machine_type = "n1-standard-2"
     disk_size_gb = 100
@@ -245,6 +265,16 @@ resource "google_container_node_pool" "my_node_pool" {
 
     # ノードの設定など...
   }
+
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 10
+  } // 自動スケーリングの設定を指定
+
+  upgrade_settings {
+    max_surge       = 1
+    max_unavailable = 0
+  } // ノードのアップグレード戦略を指定
 }
 
 #データベースの作成
@@ -261,7 +291,7 @@ resource "google_sql_database_instance" "my_instance" {
 
   settings {
     tier = "db-n1-standard-1"
-  }
+  } // インスタンスを作成するリージョンを指定
 }
 
 #データベースユーザーの作成
@@ -269,8 +299,10 @@ resource "google_sql_user" "example_user" {
   name     = "test-kamiyama"
   instance = google_sql_database_instance.my_instance.id
   password = "20230711"
+  project    = "casa-task-sql" // プロジェクトを指定
 }
 
+#notificationの設定
 resource "google_storage_notification" "notification" {
   bucket        = google_storage_bucket.bucket.name
   payload_format = "JSON_API_V1"
@@ -291,6 +323,7 @@ resource "google_service_account" "service_account" {
   account_id   = var.service_account_id
   display_name = "Service Account for data analysis"
   project      = google_project.project.project_id
+  description    = "This service account is used for terraform test." // サービスアカウントの説明
 }
 
 # IAMバインディングを作成
@@ -307,12 +340,21 @@ resource "google_project_iam_binding" "binding" {
 ## Google Pub/Subのトピックリソースを作成
 resource "google_pubsub_topic" "my_topic" {
   name = "terraform-topic"
+
+  message_storage_policy {
+    allowed_persistence_regions = ["us-central1", "us-east1"]
+  } // トピックのメッセージ保持ポリシーを設定
 }
 
 # Google Pub/Subのサブスクリプションリソースを作成
 resource "google_pubsub_subscription" "my_subscription" {
   name  = "terraform-subscription"
   topic = google_pubsub_topic.my_topic.name
+  ack_deadline_seconds = 30 // メッセージのACK待機時間（秒単位）を指定
+
+  expiration_policy {
+    ttl         = "86400s"  # 1日（秒単位）
+  } // サブスクリプションの有効期限ポリシーを設
 }
 
 # Google Cloud DNSのManaged Zoneリソースを作成
@@ -479,13 +521,15 @@ resource "google_project_iam_policy" "project" {
   policy_data = data.google_iam_policy.policy.policy_data
 }
 
-
+#サービスアカウントの作成
 resource "google_service_account" "account" {
-  account_id   = "my-service-account"
+  account_id   = "momoko-sample"
   display_name = "My Service Account"
-  project      = "your-project-id"
+  project      = "casa-task-sql"
+  description    = "This service account is used for momoko." // サービスアカウントの説明
 }
 
+#サービスアカウントキーの作成
 resource "google_service_account_key" "key" {
   service_account_id = google_service_account.account.name
 }
