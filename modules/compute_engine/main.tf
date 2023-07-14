@@ -93,8 +93,6 @@ resource "google_compute_ssl_certificate" "example_certificate" {
   description = "Example SSL Certificate"                   // SSL証明書の説明を指定
   private_key = file("/Users/kamiyamaayane/sample_csr.pem") // SSL証明書のプライベートキーを指定
   certificate = file("/Users/kamiyamaayane/sample_key.pem") // SSL証明書の証明書を指定
-  address_type = "EXTERNAL"     //グローバルアドレスのタイプを指定
-  purpose      = "GCE_ENDPOINT" //グローバルアドレスの目的を指定
 }
 
 #Google Compute Engineのhealth_checkリソースを作成
