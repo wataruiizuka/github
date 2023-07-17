@@ -37,7 +37,7 @@ resource "google_service_account" "service_account" {
 
 #サービスアカウントキーの作成
 resource "google_service_account_key" "key" {
-  service_account_id = google_service_account.account.name // 作成したサービスアカウントの名前を指定
+  service_account_id = "google_service_account.momoko-sample" // 作成したサービスアカウントの名前を指定
 }
 
 data "google_iam_policy" "policy" {

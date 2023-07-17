@@ -1,20 +1,21 @@
 # TerraformがGoogle Cloud Platformへのアクセスを提供するためのプロバイダの設定
 provider "google" {
-  credentials           = file(var.credentials_file) // GCPにアクセスするための認証情報を指定
-  project               = var.project_name           // 使用するGCPプロジェクトの名前を指定
-  region                = "us-central1"              // リソースを作成するGCPリージョンを指定
-  zone                  = "us-central1"              // リソースを作成するGCPゾーン(GCPのゾーン指定)
-  user_project_override = true                       // 特定のプロジェクトが複数のプロジェクトにまたがるリソースの費用を負担する必要があるかどうか
-  request_timeout       = "10m"                      // 全リクエストのタイムアウト(リクエストのタイムアウト)
-  scopes = [
-    "https://www.googleapis.com/auth/cloud-platform",
-    "https://www.googleapis.com/auth/compute",
-    "https://www.googleapis.com/auth/cloud-platform.read-only",
-    "https://www.googleapis.com/auth/cloud-platform.googleapis.com",
-    "https://www.googleapis.com/auth/bigquery",
-    "https://www.googleapis.com/auth/pubsub"
-  ]                                 //OAuth 2.0スコープのリスト
-  billing_project = "casa-task-sql" //APIリクエストの課金先(課金プロジェクト指定)
+credentials = file(var.credentials_file) // GCPにアクセスするための認証情報を指定
+project = var.project_name // 使用するGCPプロジェクトの名前を指定
+region = "us-central1" // リソースを作成するGCPリージョンを指定
+zone = "us-central1" // リソースを作成するGCPゾーン(GCPのゾーン指定)
+user_project_override = true // 特定のプロジェクトが複数のプロジェクトにまたがるリソースの費用を負担する必要があるかどうか
+request_timeout = "10m" // 全リクエストのタイムアウト(リクエストのタイムアウト)
+scopes = [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute",
+"https://www.googleapis.com/auth/cloud-platform.googleapis.com",
+"https://www.googleapis.com/auth/pubsub",
+"https://www.googleapis.com/auth/bigquery",
+"https://www.googleapis.com/auth/bigquery.insertdata",
+"https://www.googleapis.com/auth/bigquery.data"
+]
+billing_project = "casa-task-sql" // 課金プロジェクトの変数を使用
 }
 
 # 新しいGoogle Cloudプロジェクトを作成
@@ -44,17 +45,6 @@ resource "google_project_service" "cloud_storage" {
 #BucketのACL設定
 data "google_project" "project" {
   project_id = "casa-task-sql" // プロジェクトのIDを指定
-}
-
-#Bucket Policyの管理
-data "google_iam_policy" "bucket_admin" {
-  binding {                      // IAMポリシー定義
-    role = "roles/storage.admin" // ストレージ管理者ロール
-    members = [
-      "user:ayane.kamiyama@casa-llc.com",
-      "user:shiori.tago@casa-llc.com"
-    ] // ロールを持つユーザー
-  }
 }
 
 module "bigquery" {

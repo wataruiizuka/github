@@ -30,6 +30,17 @@ resource "google_storage_bucket" "bucket" {
   } //ファイルのライフサイクルルールを指定
 }
 
+#Bucket Policyの管理
+data "google_iam_policy" "bucket_admin" {
+  binding {                      // IAMポリシー定義
+    role = "roles/storage.admin" // ストレージ管理者ロール
+    members = [
+      "user:ayane.kamiyama@casa-llc.com",
+      "user:shiori.tago@casa-llc.com"
+    ] // ロールを持つユーザー
+  }
+}
+
 #iam policyの設定
 resource "google_storage_bucket_iam_member" "member" {
   bucket = google_storage_bucket.bucket.name  // メンバーを追加するバケットの名前を指定
@@ -132,10 +143,15 @@ resource "google_storage_bucket_acl" "bucket_acl" {
 resource "google_storage_notification" "notification" {
   bucket         = google_storage_bucket.bucket.name // 通知を設定する対象のCloud Storageバケットの名前を指定
   payload_format = "JSON_API_V1"                     // 通知メッセージのペイロード形式を指定
-  topic          = google_pubsub_topic.example.id    // 通知を受信するGoogle Cloud Pub/SubトピックのIDを指定
+  topic          = "google_pubsub_topic.example-topic"    // 通知を受信するGoogle Cloud Pub/SubトピックのIDを指定
   event_types    = ["OBJECT_FINALIZE"]               // 通知をトリガーするイベントタイプを指定
   custom_attributes = {
     key1 = "value1"
     key2 = "value2"
   } // カスタム属性を指定(キーと値のペアで指定)
+}
+
+#Pub/Subの作成
+resource "google_pubsub_topic" "example" {
+  name = "example-topic"
 }
