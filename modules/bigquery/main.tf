@@ -1,17 +1,28 @@
-# データセットを作成
-resource "google_bigquery_dataset" "tf_gcp_dbt_dataset" {
-  dataset_id    = "tf_gcp_dbt_dataset"           // データセットのIDを指定
-  friendly_name = "My Dataset"                   // データセットのフレンドリー名を指定
-  description   = "This is a sample description" // データセットの説明
-  location      = "US"                           // データセットの場所（ロケーション）を指定
+# BigQueryデータセット定義：raw
+resource "google_bigquery_dataset" "raw" {
+  dataset_id                  = "raw" // テーブルのID
+  friendly_name               = "Raw Dataset" // テーブルの表示名
+  description                 = "Dataset for storing raw data" // テーブルの説明
+  location                    = "US" // テーブルの場所
+  default_table_expiration_ms = 3600000 // テーブル有効期限(ms)
 }
 
-# tago2_gcp_dbt_datasetという名前のデータセットを作成
-resource "google_bigquery_dataset" "tago2_gcp_dbt_dataset" {
-  dataset_id    = "tago2_gcp_dbt_dataset"        // データセットのIDを指定
-  friendly_name = "My Dataset"                   // データセットのフレンドリー名を指定
-  description   = "This is a sample description" // データセットの説明
-  location      = "US"                           // データセットの場所（ロケーション）を指定
+# BigQueryデータセット定義：dwh
+resource "google_bigquery_dataset" "dwh" {
+  dataset_id                  = "dwh" // テーブルのID
+  friendly_name               = "DWH Dataset" // テーブルの表示名
+  description                 = "Dataset for storing DWH data" // テーブルの説明
+  location                    = "US" // テーブルの場所
+  default_table_expiration_ms = 3600000 // テーブル有効期限(ms)
+}
+
+# BigQueryデータセット定義：datamart
+resource "google_bigquery_dataset" "datamart" {
+  dataset_id                  = "datamart" // テーブルのID
+  friendly_name               = "Data Mart Dataset" // テーブルの表示名
+  description                 = "Dataset for storing Data Mart data" // テーブルの説明
+  location                    = "US" // テーブルの場所
+  default_table_expiration_ms = 3600000 // テーブル有効期限(ms)
 }
 
 # tago_dataset_scheduleという名前のデータセットを作成

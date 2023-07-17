@@ -1,0 +1,14 @@
+default:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: '${var.project_id}'
+      dataset: 'dbt_dataset'
+      threads: 1
+      timeout_seconds: 300
+      location: 'US'
+      priority: 'interactive'
+      retries: 1
+      service_account_path: '${var.credentials_file}'
