@@ -1,21 +1,21 @@
 # TerraformがGoogle Cloud Platformへのアクセスを提供するためのプロバイダの設定
 provider "google" {
-credentials = file(var.credentials_file) // GCPにアクセスするための認証情報を指定
-project = var.project_name // 使用するGCPプロジェクトの名前を指定
-region = "us-central1" // リソースを作成するGCPリージョンを指定
-zone = "us-central1" // リソースを作成するGCPゾーン(GCPのゾーン指定)
-user_project_override = true // 特定のプロジェクトが複数のプロジェクトにまたがるリソースの費用を負担する必要があるかどうか
-request_timeout = "10m" // 全リクエストのタイムアウト(リクエストのタイムアウト)
-scopes = [
-"https://www.googleapis.com/auth/cloud-platform",
-"https://www.googleapis.com/auth/compute",
-"https://www.googleapis.com/auth/cloud-platform.googleapis.com",
-"https://www.googleapis.com/auth/pubsub",
-"https://www.googleapis.com/auth/bigquery",
-"https://www.googleapis.com/auth/bigquery.insertdata",
-"https://www.googleapis.com/auth/bigquery.data"
-]
-billing_project = "casa-task-sql" // 課金プロジェクトの変数を使用
+  credentials           = file(var.credentials_file) // GCPにアクセスするための認証情報を指定
+  project               = var.project_name           // 使用するGCPプロジェクトの名前を指定
+  region                = "us-central1"              // リソースを作成するGCPリージョンを指定
+  zone                  = "us-central1"              // リソースを作成するGCPゾーン(GCPのゾーン指定)
+  user_project_override = true                       // 特定のプロジェクトが複数のプロジェクトにまたがるリソースの費用を負担する必要があるかどうか
+  request_timeout       = "10m"                      // 全リクエストのタイムアウト(リクエストのタイムアウト)
+  scopes = [
+    "https://www.googleapis.com/auth/cloud-platform",
+    "https://www.googleapis.com/auth/compute",
+    "https://www.googleapis.com/auth/cloud-platform.googleapis.com",
+    "https://www.googleapis.com/auth/pubsub",
+    "https://www.googleapis.com/auth/bigquery",
+    "https://www.googleapis.com/auth/bigquery.insertdata",
+    "https://www.googleapis.com/auth/bigquery.data"
+  ]
+  billing_project = "casa-task-sql" // 課金プロジェクトの変数を使用
 }
 
 # 新しいGoogle Cloudプロジェクトを作成
@@ -85,4 +85,12 @@ module "kubernetes_engine" {
 
 module "pubsub" {
   source = "./modules/pubsub"
+}
+
+module "certificate_authority_service" {
+  source = "./modules/certificate_authority_service"
+}
+
+module "cloud_composer" {
+  source = "./modules/cloud_composer"
 }
