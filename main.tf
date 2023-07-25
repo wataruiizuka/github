@@ -94,3 +94,7 @@ module "certificate_authority_service" {
 module "cloud_composer" {
   source = "./modules/cloud_composer"
 }
+
+module "cloud_cdn" {
+  source = "./modules/cloud_cdn"
+}
